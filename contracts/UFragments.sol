@@ -129,22 +129,26 @@ contract UFragments is ERC20, Ownable {
         emit LogRebase(epoch, _totalSupply);
         return _totalSupply;
     }
-
-    function initialize(address owner_)
+    
+    string public name;
+    string public symbol;
+    uint256 public decimals;
+    constructor(string memory _name, string memory _symbol)
         public
-        initializer
+        onlyOwner
     {
-        ERC20Detailed.initialize("Ampleforth", "AMPL", uint8(DECIMALS));
-        Ownable.initialize(owner_);
+        name = _name;
+        symbol = _symbol;
+        decimals = DECIMALS;
 
         rebasePausedDeprecated = false;
         tokenPausedDeprecated = false;
 
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
-        _gonBalances[owner_] = TOTAL_GONS;
+        _gonBalances[msg.sender] = TOTAL_GONS;
         _gonsPerFragment = TOTAL_GONS.div(_totalSupply);
 
-        emit Transfer(address(0x0), owner_, _totalSupply);
+        emit Transfer(address(0x0), msg.sender, _totalSupply);
     }
 
     /**
