@@ -17,7 +17,7 @@ import "./lib/SafeMathInt.sol";
  *      We support splitting the currency in expansion and combining the currency on contraction by
  *      changing the exchange rate between the hidden 'gons' and the public 'fragments'.
  */
-contract UFragments is ERC20Detailed, Ownable {
+contract UFragments is ERC20, Ownable {
     // PLEASE READ BEFORE CHANGING ANY ACCOUNTING OR MATH
     // Anytime there is division, there is a risk of numerical instability from rounding errors. In
     // order to minimize this risk, we adhere to the following guidelines:
@@ -60,7 +60,7 @@ contract UFragments is ERC20Detailed, Ownable {
 
     uint256 private constant DECIMALS = 9;
     uint256 private constant MAX_UINT256 = ~uint256(0);
-    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 50 * 10**6 * 10**DECIMALS;
+    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 10000 * 10**6 * 10**DECIMALS;
 
     // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that _gonsPerFragment is an integer.
     // Use the highest value that fits in a uint256 for max granularity.
@@ -129,22 +129,26 @@ contract UFragments is ERC20Detailed, Ownable {
         emit LogRebase(epoch, _totalSupply);
         return _totalSupply;
     }
-
-    function initialize(address owner_)
+    
+    string public name;
+    string public symbol;
+    uint256 public decimals;
+    constructor(string memory _name, string memory _symbol)
         public
-        initializer
+        onlyOwner
     {
-        ERC20Detailed.initialize("Ampleforth", "AMPL", uint8(DECIMALS));
-        Ownable.initialize(owner_);
+        name = _name;
+        symbol = _symbol;
+        decimals = DECIMALS;
 
         rebasePausedDeprecated = false;
         tokenPausedDeprecated = false;
 
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
-        _gonBalances[owner_] = TOTAL_GONS;
+        _gonBalances[msg.sender] = TOTAL_GONS;
         _gonsPerFragment = TOTAL_GONS.div(_totalSupply);
 
-        emit Transfer(address(0x0), owner_, _totalSupply);
+        emit Transfer(address(0x0), msg.sender, _totalSupply);
     }
 
     /**
