@@ -57,6 +57,12 @@ contract UFragmentsPolicy is Ownable {
     // Check setRebaseLag comments for more details.
     // Natural number, no decimal places.
     uint256 public rebaseLag;
+    
+    // The negative rebase lag parameter, used if supplyDelta is less than zero 
+    // to dampen the applied supply adjustment by 1 / negRebaseLag
+    // Check setNegRebaseLag comments for more details.
+    // Natural number, no decimal places.
+    uint256 public negRebaseLag;
 
     // More than this much time must pass between rebase operations.
     uint256 public minRebaseTimeIntervalSec;
@@ -128,7 +134,13 @@ contract UFragmentsPolicy is Ownable {
         int256 supplyDelta = computeSupplyDelta(exchangeRate, targetRate);
 
         // Apply the Dampening factor.
-        supplyDelta = supplyDelta.div(rebaseLag.toInt256Safe());
+        if (supplyDelta >= 0) {
+            supplyDelta = supplyDelta.div(rebaseLag.toInt256Safe());
+        }
+
+        if (supplyDelta < 0) {
+            supplyDelta = supplyDelta.div(negRebaseLag.toInt256Safe());
+        }
 
         if (supplyDelta > 0 && uFrags.totalSupply().add(uint256(supplyDelta)) > MAX_SUPPLY) {
             supplyDelta = (MAX_SUPPLY.sub(uFrags.totalSupply())).toInt256Safe();
@@ -202,6 +214,22 @@ contract UFragmentsPolicy is Ownable {
     }
 
     /**
+     * @notice Sets the negative rebase lag parameter.
+               It is used to dampen the applied supply adjustment by 1 / negRebaseLag) 
+               If the rebase lag R, equals 1, the smallest value for R, then the full supply
+               correction is applied on each rebase cycle.
+               If it is greater than 1, then a correction of 1/R of is applied on each rebase.
+     * @param negRebaseLag_ The new rebase lag parameter.
+     */
+    function setNegRebaseLag(uint256 negRebaseLag_)
+        external
+        onlyOwner
+    {
+        require(negRebaseLag_ > 0);
+        negRebaseLag = negRebaseLag_;
+    }
+    
+    /**
      * @notice Sets the parameters which control the timing and frequency of
      *         rebase operations.
      *         a) the minimum time period that must elapse between rebase cycles.
@@ -228,23 +256,16 @@ contract UFragmentsPolicy is Ownable {
         rebaseWindowLengthSec = rebaseWindowLengthSec_;
     }
 
-    /**
-     * @dev ZOS upgradable contract initialization method.
-     *      It is called at the time of contract creation to invoke parent class initializers and
-     *      initialize the contract's state variables.
-     */
-    function initialize(address owner_, UFragments uFrags_, uint256 baseCpi_)
-        public
-        initializer
+    constructor(UFragments uFrags_, uint256 baseCpi_)
+        public 
     {
-        Ownable.initialize(owner_);
-
         // deviationThreshold = 0.05e18 = 5e16
-        deviationThreshold = 5 * 10 ** (DECIMALS-2);
+        deviationThreshold = 2 * 10 ** (DECIMALS-2);
 
         rebaseLag = 30;
-        minRebaseTimeIntervalSec = 1 days;
-        rebaseWindowOffsetSec = 72000;  // 8PM UTC
+        negRebaseLag = 5;
+        minRebaseTimeIntervalSec = 4 hours; //1 days;
+        rebaseWindowOffsetSec = 0;          //72000;  // 8PM UTC
         rebaseWindowLengthSec = 15 minutes;
         lastRebaseTimestampSec = 0;
         epoch = 0;
