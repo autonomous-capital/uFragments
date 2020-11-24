@@ -1,6 +1,6 @@
-pragma solidity 0.4.24;
+pragma solidity ^0.5.0;
 
-import "openzeppelin-eth/contracts/ownership/Ownable.sol";
+import "openzeppelin-contracts/contracts/ownership/Ownable.sol";
 
 import "./UFragmentsPolicy.sol";
 
@@ -29,7 +29,6 @@ contract Orchestrator is Ownable {
      * @param policy_ Address of the UFragments policy.
      */
     constructor(address policy_) public {
-        Ownable.initialize(msg.sender);
         policy = UFragmentsPolicy(policy_);
     }
 
@@ -66,7 +65,7 @@ contract Orchestrator is Ownable {
      * @param destination Address of contract destination
      * @param data Transaction data payload
      */
-    function addTransaction(address destination, bytes data)
+    function addTransaction(address destination, bytes calldata data)
         external
         onlyOwner
     {
@@ -123,7 +122,7 @@ contract Orchestrator is Ownable {
      * @param data The encoded data payload.
      * @return True on success
      */
-    function externalCall(address destination, bytes data)
+    function externalCall(address destination, bytes memory data)
         internal
         returns (bool)
     {
